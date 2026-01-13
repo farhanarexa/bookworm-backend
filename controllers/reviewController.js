@@ -1,6 +1,6 @@
 const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb');
-const Activity = require('../models/activityModel');
+
 
 // @desc    Create new review
 // @route   POST /api/reviews
@@ -37,11 +37,14 @@ const createReview = async (req, res) => {
         const createdReview = await db.collection('reviews').findOne({ _id: result.insertedId });
 
         // Activity logging
-        await Activity.create({
+        await db.collection('activities').insertOne({
             user: new ObjectId(req.user._id),
             type: 'new_review',
             book: new ObjectId(bookId),
-            details: `rated it ${rating}/5`
+            details: `rated it ${rating}/5`,
+            timestamp: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
         });
 
         res.status(201).json(createdReview);

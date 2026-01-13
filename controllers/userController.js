@@ -1,6 +1,6 @@
 const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb');
-const Activity = require('../models/activityModel');
+
 
 // @desc    Add book to shelf
 // @route   POST /api/users/shelf
@@ -79,11 +79,14 @@ const addToShelf = async (req, res) => {
     else if (shelf === 'currentlyReading') details = progress > 0 ? `updated progress to ${progress}` : 'started reading';
 
     if (details) {
-        await Activity.create({
+        await db.collection('activities').insertOne({
             user: new ObjectId(req.user._id),
             type: 'shelf_update',
             book: new ObjectId(bookId),
-            details
+            details,
+            timestamp: new Date(),
+            createdAt: new Date(),
+            updatedAt: new Date()
         });
     }
 
