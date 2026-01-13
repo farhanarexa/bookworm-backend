@@ -131,28 +131,55 @@ const getRecommendations = async (req, res) => {
     const db = getDB();
     const user = await db.collection('users').findOne({ _id: new ObjectId(req.user._id) });
 
-    // In original code, it used populate. We need to fetch the books manually or use aggregation.
-    // Simplified fetch for read books:
     const readBookIds = user.read || [];
     const readBooks = await db.collection('books').find({ _id: { $in: readBookIds.map(id => new ObjectId(id)) } }).toArray();
 
-    const genres = readBooks.map(book => book.genre);
+    // Count genre occurrences
+    const genreCounts = {};
+    readBooks.forEach(book => {
+        if (book.genre) {
+            genreCounts[book.genre] = (genreCounts[book.genre] || 0) + 1;
+        }
+    });
+
+    // Genres with 3+ reads
+    const favoriteGenres = Object.keys(genreCounts).filter(genre => genreCounts[genre] >= 3);
+    const otherReadGenres = Object.keys(genreCounts).filter(genre => genreCounts[genre] < 3);
 
     let recommendations = [];
-    if (genres.length > 0) {
-        recommendations = await db.collection('books').find({
-            genre: { $in: genres },
+
+    // 1. Fetch from favorite genres first
+    if (favoriteGenres.length > 0) {
+        const topRecs = await db.collection('books').find({
+            genre: { $in: favoriteGenres },
             _id: { $nin: readBookIds.map(id => new ObjectId(id)) }
         }).limit(10).toArray();
+        recommendations = [...topRecs];
     }
 
+    // 2. Supplement with other read genres if needed
+    if (recommendations.length < 5 && otherReadGenres.length > 0) {
+        const additionalRecs = await db.collection('books').find({
+            genre: { $in: otherReadGenres },
+            _id: { $nin: [...readBookIds.map(id => new ObjectId(id)), ...recommendations.map(r => r._id)] }
+        }).limit(10 - recommendations.length).toArray();
+        recommendations = [...recommendations, ...additionalRecs];
+    }
+
+    // 3. Fallback to popular books
     if (recommendations.length < 5) {
-        const popularBooks = await db.collection('books').find({}).sort({ averageRating: -1 }).limit(10).toArray();
+        const popularBooks = await db.collection('books')
+            .find({ _id: { $nin: [...readBookIds.map(id => new ObjectId(id)), ...recommendations.map(r => r._id)] } })
+            .sort({ averageRating: -1 })
+            .limit(12 - recommendations.length)
+            .toArray();
         recommendations = [...recommendations, ...popularBooks];
-        recommendations = [...new Map(recommendations.map(item => [item['title'], item])).values()];
     }
 
-    res.json(recommendations.slice(0, 12));
+    // Final deduplication (by ID just in case) and slicing
+    const uniqueRecs = Array.from(new Map(recommendations.map(item => [item._id.toString(), item])).values());
+
+    res.json(uniqueRecs.slice(0, 12));
 };
 
 module.exports = {

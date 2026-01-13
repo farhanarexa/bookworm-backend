@@ -58,7 +58,9 @@ const registerUser = async (req, res) => {
             name: createdUser.name,
             email: createdUser.email,
             role: createdUser.role,
-            photo: createdUser.photo
+            photo: createdUser.photo,
+            read: createdUser.read || [],
+            readingGoal: createdUser.readingGoal || 0
         });
     } else {
         res.status(400);
@@ -82,7 +84,9 @@ const loginUser = async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
-            photo: user.photo
+            photo: user.photo,
+            read: user.read || [],
+            readingGoal: user.readingGoal || 0
         });
     } else {
         res.status(401);
@@ -110,7 +114,9 @@ const getUserProfile = async (req, res) => {
         name: req.user.name,
         email: req.user.email,
         role: req.user.role,
-        photo: req.user.photo
+        photo: req.user.photo,
+        read: req.user.read || [],
+        readingGoal: req.user.readingGoal || 0
     };
     res.status(200).json(user);
 };

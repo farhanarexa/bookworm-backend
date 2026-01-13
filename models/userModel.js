@@ -46,7 +46,11 @@ const userSchema = mongoose.Schema({
     read: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Book'
-    }]
+    }],
+    readingGoal: {
+        type: Number,
+        default: 0
+    }
 }, {
     timestamps: true
 });

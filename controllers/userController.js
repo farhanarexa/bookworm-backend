@@ -1,5 +1,6 @@
 const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb');
+const Activity = require('../models/activityModel');
 
 // @desc    Add book to shelf
 // @route   POST /api/users/shelf
@@ -48,6 +49,21 @@ const addToShelf = async (req, res) => {
             }
         }
     );
+
+    // Activity logging
+    let details = '';
+    if (shelf === 'wantToRead') details = 'added to wishlist';
+    else if (shelf === 'read') details = 'finished reading';
+    else if (shelf === 'currentlyReading') details = progress > 0 ? `updated progress to ${progress}` : 'started reading';
+
+    if (details) {
+        await Activity.create({
+            user: new ObjectId(req.user._id),
+            type: 'shelf_update',
+            book: new ObjectId(bookId),
+            details
+        });
+    }
 
     const updatedUser = await db.collection('users').findOne({ _id: new ObjectId(req.user._id) });
     res.json(updatedUser);
@@ -118,7 +134,23 @@ const getUserLibrary = async (req, res) => {
     }
 };
 
+// @desc    Update user reading goal
+// @route   PUT /api/users/goal
+// @access  Private
+const updateReadingGoal = async (req, res) => {
+    const db = getDB();
+    const { goal } = req.body;
+
+    await db.collection('users').updateOne(
+        { _id: new ObjectId(req.user._id) },
+        { $set: { readingGoal: Number(goal) } }
+    );
+
+    res.json({ message: 'Reading goal updated', goal });
+};
+
 module.exports = {
     addToShelf,
-    getUserLibrary
+    getUserLibrary,
+    updateReadingGoal
 };

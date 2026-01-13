@@ -1,5 +1,6 @@
 const { getDB } = require('../config/db');
 const { ObjectId } = require('mongodb');
+const Activity = require('../models/activityModel');
 
 // @desc    Create new review
 // @route   POST /api/reviews
@@ -34,6 +35,14 @@ const createReview = async (req, res) => {
 
         const result = await db.collection('reviews').insertOne(review);
         const createdReview = await db.collection('reviews').findOne({ _id: result.insertedId });
+
+        // Activity logging
+        await Activity.create({
+            user: new ObjectId(req.user._id),
+            type: 'new_review',
+            book: new ObjectId(bookId),
+            details: `rated it ${rating}/5`
+        });
 
         res.status(201).json(createdReview);
     } else {

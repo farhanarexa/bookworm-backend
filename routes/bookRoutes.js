@@ -8,12 +8,14 @@ const {
     deleteBook,
     getRecommendations
 } = require('../controllers/bookController');
+const { getGenres } = require('../controllers/genreController');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 router.route('/')
     .get(getBooks)
     .post(protect, admin, createBook);
 
+router.route('/genres').get(getGenres);
 router.route('/recommendations').get(protect, getRecommendations);
 
 router.route('/:id')

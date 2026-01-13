@@ -6,7 +6,7 @@ const {
     logoutUser,
     getUserProfile
 } = require('../controllers/authController');
-const { addToShelf, getUserLibrary } = require('../controllers/userController');
+const { addToShelf, getUserLibrary, updateReadingGoal } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.post('/', registerUser);
@@ -15,5 +15,6 @@ router.post('/logout', logoutUser);
 router.get('/profile', protect, getUserProfile);
 router.post('/shelf', protect, addToShelf);
 router.get('/library', protect, getUserLibrary);
+router.put('/goal', protect, updateReadingGoal);
 
 module.exports = router;
