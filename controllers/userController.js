@@ -21,10 +21,16 @@ const addToShelf = async (req, res) => {
     user.read = user.read || [];
     user.currentlyReading = user.currentlyReading || [];
 
+    // Check if book was already on any shelf
+    const wasOnShelf =
+        (user.wantToRead || []).some(id => id.toString() === bookId) ||
+        (user.read || []).some(id => id.toString() === bookId) ||
+        (user.currentlyReading || []).some(item => item.book.toString() === bookId);
+
     // Remove from all shelves first
-    user.wantToRead = user.wantToRead.filter(id => id.toString() !== bookId);
-    user.read = user.read.filter(id => id.toString() !== bookId);
-    user.currentlyReading = user.currentlyReading.filter(item => item.book.toString() !== bookId);
+    user.wantToRead = (user.wantToRead || []).filter(id => id.toString() !== bookId);
+    user.read = (user.read || []).filter(id => id.toString() !== bookId);
+    user.currentlyReading = (user.currentlyReading || []).filter(item => item.book.toString() !== bookId);
 
     if (shelf === 'wantToRead') {
         user.wantToRead.push(new ObjectId(bookId));
@@ -36,6 +42,22 @@ const addToShelf = async (req, res) => {
             progress: progress || 0,
             totalLength: totalLength || 0
         });
+    }
+
+    const isNowOnShelf = ['wantToRead', 'read', 'currentlyReading'].includes(shelf);
+
+    if (!wasOnShelf && isNowOnShelf) {
+        // Increment shelvedCount
+        await db.collection('books').updateOne(
+            { _id: new ObjectId(bookId) },
+            { $inc: { shelvedCount: 1 } }
+        );
+    } else if (wasOnShelf && !isNowOnShelf) {
+        // Decrement shelvedCount
+        await db.collection('books').updateOne(
+            { _id: new ObjectId(bookId) },
+            { $inc: { shelvedCount: -1 } }
+        );
     }
 
     await db.collection('users').updateOne(

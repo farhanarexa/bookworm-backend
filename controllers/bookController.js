@@ -8,31 +8,50 @@ const getBooks = async (req, res) => {
     const db = getDB();
     const pageSize = 12;
     const page = Number(req.query.pageNumber) || 1;
-    const keyword = req.query.keyword
-        ? {
-            $or: [
-                {
-                    title: {
-                        $regex: req.query.keyword,
-                        $options: 'i',
-                    },
-                },
-                {
-                    author: {
-                        $regex: req.query.keyword,
-                        $options: 'i',
-                    },
-                },
-            ],
+
+    let query = {};
+
+    // Keyword Search (Title or Author)
+    if (req.query.keyword) {
+        query.$or = [
+            { title: { $regex: req.query.keyword, $options: 'i' } },
+            { author: { $regex: req.query.keyword, $options: 'i' } }
+        ];
+    }
+
+    // Genre Filter (Multi-select)
+    if (req.query.genre) {
+        const genres = Array.isArray(req.query.genre)
+            ? req.query.genre
+            : req.query.genre.split(',').filter(g => g);
+        if (genres.length > 0) {
+            query.genre = { $in: genres };
         }
-        : {};
+    }
 
-    // Genre filter
-    const genre = req.query.genre ? { genre: req.query.genre } : {};
+    // Rating Filter
+    if (req.query.minRating || req.query.maxRating) {
+        query.averageRating = {};
+        if (req.query.minRating) query.averageRating.$gte = Number(req.query.minRating);
+        if (req.query.maxRating) query.averageRating.$lte = Number(req.query.maxRating);
+    }
 
-    const count = await db.collection('books').countDocuments({ ...keyword, ...genre });
+    // Sorting
+    let sort = { createdAt: -1 }; // Default
+    if (req.query.sortBy) {
+        if (req.query.sortBy === 'rating') {
+            sort = { averageRating: -1, ratingCount: -1 };
+        } else if (req.query.sortBy === 'mostShelved') {
+            sort = { shelvedCount: -1, createdAt: -1 };
+        } else if (req.query.sortBy === 'newest') {
+            sort = { createdAt: -1 };
+        }
+    }
+
+    const count = await db.collection('books').countDocuments(query);
     const books = await db.collection('books')
-        .find({ ...keyword, ...genre })
+        .find(query)
+        .sort(sort)
         .limit(pageSize)
         .skip(pageSize * (page - 1))
         .toArray();

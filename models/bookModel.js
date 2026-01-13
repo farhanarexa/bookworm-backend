@@ -36,6 +36,10 @@ const bookSchema = mongoose.Schema({
     ratingCount: {
         type: Number,
         default: 0
+    },
+    shelvedCount: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true
