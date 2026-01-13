@@ -23,11 +23,15 @@ const userRoutes = require('./routes/userRoutes');
 const bookRoutes = require('./routes/bookRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const tutorialRoutes = require('./routes/tutorialRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 app.use('/api/users', userRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/tutorials', tutorialRoutes);
+app.use('/api/admin', adminRoutes);
 
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, '/uploads')));
